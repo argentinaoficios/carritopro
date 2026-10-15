@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Catálogo Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+  <!-- ── Auth screen ──────────────────────────────────── -->
+  <div id="auth-screen">
+    <div class="auth-box">
+      <div class="auth-logo">🔐</div>
+      <h1>Panel de Administración</h1>
+      <p>Ingresá tu clave de acceso para continuar</p>
+      <input id="admin-password" type="password" placeholder="Clave de administrador">
+      <p id="auth-error"></p>
+      <button class="btn-primary" onclick="login()">Ingresar</button>
+    </div>
+  </div>
+
+  <!-- ── Admin panel ──────────────────────────────────── -->
+  <div id="admin-panel">
+
+    <header class="admin-header">
+      <h1>⚙ Panel de Administración</h1>
+      <div class="header-right">
+        <a href="index.html" class="btn-link-catalog">← Ver catálogo</a>
+        <button class="btn-logout" onclick="logout()">Salir</button>
+      </div>
+    </header>
+
+    <nav class="admin-tabs">
+      <button class="admin-tab active" data-tab="products">📦 Productos</button>
+      <button class="admin-tab" data-tab="config">⚙ Configuración</button>
+    </nav>
+
+    <!-- Tab: Productos -->
+    <div class="tab-pane active" id="tab-products">
+      <div class="tab-toolbar">
+        <h2>Gestión de productos</h2>
+        <div class="toolbar-right">
+          <div class="admin-search-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input type="search" placeholder="Buscar producto…" oninput="filterAdminSearch(event)">
+          </div>
+          <button id="toggle-inactive-btn" class="btn-secondary" onclick="toggleInactive()">Ver eliminados</button>
+          <button class="btn-add" onclick="openAddModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Nuevo producto
+          </button>
+        </div>
+      </div>
+      <div id="admin-product-list"></div>
+    </div>
+
+    <!-- Tab: Config -->
+    <div class="tab-pane" id="tab-config">
+      <div class="tab-toolbar">
+        <h2>Configuración de la tienda</h2>
+      </div>
+
+      <div class="config-form">
+        <p class="form-section-title">Información general</p>
+
+        <div class="form-group">
+          <label for="cfg-store-name">Nombre de la tienda</label>
+          <input id="cfg-store-name" type="text" placeholder="Mi Tienda">
+        </div>
+
+        <div class="form-group">
+          <label for="cfg-whatsapp">Número de WhatsApp</label>
+          <input id="cfg-whatsapp" type="text" placeholder="5491144445555">
+          <small>Formato internacional sin + ni espacios. Ej. Argentina: 549 + código de área + número</small>
+        </div>
+
+        <div class="form-group">
+          <label for="cfg-currency">Símbolo de moneda</label>
+          <input id="cfg-currency" type="text" placeholder="$" style="max-width:80px">
+        </div>
+
+        <div class="form-group">
+          <label for="cfg-banner-text">Texto del banner superior</label>
+          <input id="cfg-banner-text" type="text" placeholder="¡Bienvenido a nuestra tienda!">
+        </div>
+
+        <p class="form-section-title">Apariencia</p>
+
+        <div class="form-group">
+          <label>Color principal</label>
+          <div class="color-row">
+            <input id="cfg-primary-color" type="color" value="#1e3a5f">
+            <input type="text" id="cfg-primary-color-text" placeholder="#1e3a5f" style="max-width:120px" oninput="document.getElementById('cfg-primary-color').value=this.value">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Color de acento</label>
+          <div class="color-row">
+            <input id="cfg-accent-color" type="color" value="#f59e0b">
+            <input type="text" id="cfg-accent-color-text" placeholder="#f59e0b" style="max-width:120px" oninput="document.getElementById('cfg-accent-color').value=this.value">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="cfg-logo-url">URL del logo (opcional)</label>
+          <input id="cfg-logo-url" type="url" placeholder="https://...">
+        </div>
+
+        <button id="save-config-btn" class="btn-primary" onclick="saveConfig()" style="align-self:flex-start;margin-top:.5rem">
+          Guardar configuración
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /admin-panel -->
+
+  <!-- ── Product form modal ───────────────────────────── -->
+  <div id="form-overlay"></div>
+
+  <div id="product-form-modal" role="dialog" aria-modal="true">
+    <div class="form-modal-header">
+      <h2 id="form-modal-title">Agregar producto</h2>
+      <button class="form-modal-close" onclick="closeFormModal()">✕</button>
+    </div>
+
+    <div class="form-modal-body">
+      <div class="form-grid">
+
+        <div class="form-group full">
+          <label for="f-nombre">Nombre del producto *</label>
+          <input id="f-nombre" type="text" placeholder="Ej: Camisa Oxford Blanca">
+        </div>
+
+        <div class="form-group full">
+          <label for="f-descripcion">Descripción</label>
+          <textarea id="f-descripcion" placeholder="Descripción detallada del producto…"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="f-precio">Precio *</label>
+          <input id="f-precio" type="number" min="0" step="0.01" placeholder="0.00">
+        </div>
+
+        <div class="form-group">
+          <label for="f-categoria">Categoría</label>
+          <input id="f-categoria" type="text" placeholder="Ej: Ropa, Electrónica…">
+        </div>
+
+        <div class="form-group">
+          <label for="f-stock">Stock disponible</label>
+          <input id="f-stock" type="number" min="0" placeholder="0">
+        </div>
+
+        <div class="form-group">
+          <label for="f-min">Unidades mínimas de compra</label>
+          <input id="f-min" type="number" min="1" value="1">
+          <small>Cantidad mínima que puede pedir un cliente</small>
+        </div>
+
+        <div class="form-group full">
+          <label for="f-pasos">Pasos de cantidad (separados por coma)</label>
+          <input id="f-pasos" type="text" placeholder="1 o ej: 1,5,10">
+          <small>Ej: <strong>1</strong> → solo de a 1 | <strong>1,5,10</strong> → botones para agregar de a 1, 5 o 10 unidades</small>
+        </div>
+
+        <div class="form-group full">
+          <label>Imágenes del producto</label>
+          <div class="img-add-row">
+            <input id="f-image-url" type="url" placeholder="https://... URL de la imagen">
+            <button onclick="addImageUrl()">+ Agregar</button>
+          </div>
+          <small>Podés usar URLs de Google Drive (compartir como público), Imgur, o cualquier hosting de imágenes. La primera imagen es la principal.</small>
+          <div id="image-preview-list">
+            <div class="no-images">Sin imágenes</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="form-modal-footer">
+      <button class="btn-cancel" onclick="closeFormModal()">Cancelar</button>
+      <button id="save-product-btn" class="btn-primary" onclick="saveProduct()">Guardar producto</button>
+    </div>
+  </div>
+
+  <!-- ── Confirm delete modal ──────────────────────────── -->
+  <div id="confirm-modal">
+    <h3>⚠ Confirmar eliminación</h3>
+    <p id="confirm-modal-msg"></p>
+    <div class="confirm-actions">
+      <button class="btn-cancel" onclick="document.getElementById('confirm-modal').classList.remove('open')">Cancelar</button>
+      <button id="confirm-delete-btn" class="btn-danger">Eliminar</button>
+    </div>
+  </div>
+
+  <!-- ── Admin toast ───────────────────────────────────── -->
+  <div id="admin-toast" class="admin-toast"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
