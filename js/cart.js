@@ -27,17 +27,20 @@ const Cart = {
     localStorage.setItem('cart_items', JSON.stringify(this.items));
   },
 
-  add(product, quantity) {
-    const existing = this.items.find(i => i.id === product.id);
+  add(product, quantity, variante) {
+    const itemKey = product.id + (variante ? '_' + variante : '');
+    const existing = this.items.find(i => i._key === itemKey);
     if (existing) {
       existing.quantity += quantity;
     } else {
       this.items.push({
+        _key: itemKey,
         id: product.id,
         nombre: product.nombre,
         precio: product.precio,
         imagen: product.imagenes?.[0] || '',
         quantity,
+        variante: variante || '',
         min_unidades: product.min_unidades || 1,
         pasos: product.pasos || [1],
       });
@@ -49,7 +52,7 @@ const Cart = {
   },
 
   updateQuantity(id, newQty) {
-    const item = this.items.find(i => i.id === id);
+    const item = this.items.find(i => i._key === id);
     if (!item) return;
 
     const min = item.min_unidades || 1;
@@ -62,8 +65,8 @@ const Cart = {
     this.render();
   },
 
-  remove(id) {
-    this.items = this.items.filter(i => i.id !== id);
+  remove(key) {
+    this.items = this.items.filter(i => i._key !== key);
     this.save();
     this.render();
   },
@@ -126,49 +129,51 @@ const Cart = {
 
     list.innerHTML = this.items.map(item => {
       const pasos = item.pasos && item.pasos.length > 0 ? item.pasos : [1];
-      const min = item.min_unidades || 1;
+      const key = item._key;
 
       const stepsHtml = pasos.length > 1
         ? `<div class="cart-item-steps">${pasos.map(s =>
-            `<button class="step-btn" onclick="Cart.changeStep('${item.id}', ${s})">+${s}</button>`
+            `<button class="step-btn" onclick="Cart.changeStep('${key}', ${s})">+${s}</button>`
           ).join('')}</div>`
         : '';
 
       return `
-        <div class="cart-item" data-id="${item.id}">
+        <div class="cart-item">
           <div class="cart-item-img">
             ${item.imagen
               ? `<img src="${item.imagen}" alt="${item.nombre}" onerror="this.style.display='none'">`
-              : `<div class="cart-img-placeholder">📦</div>`}
+              : `<div class="cart-img-placeholder"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="m8 21 8 0M12 17v4"/></svg></div>`}
           </div>
           <div class="cart-item-info">
-            <div class="cart-item-name">${item.nombre}</div>
+            <div class="cart-item-name">${item.nombre}${item.variante ? ` <span class="item-variante">${item.variante}</span>` : ''}</div>
             <div class="cart-item-price">${this.currency} ${this.fmt(item.precio)}</div>
             <div class="cart-item-qty-row">
-              <button class="qty-btn minus" onclick="Cart.adjustQty('${item.id}', -${pasos[0]})">−</button>
+              <button class="qty-btn minus" onclick="Cart.adjustQty('${key}', -${pasos[0]})">−</button>
               <span class="qty-display">${item.quantity}</span>
-              <button class="qty-btn plus" onclick="Cart.adjustQty('${item.id}', ${pasos[0]})">+</button>
+              <button class="qty-btn plus" onclick="Cart.adjustQty('${key}', ${pasos[0]})">+</button>
             </div>
             ${stepsHtml}
             <div class="cart-item-subtotal">${this.currency} ${this.fmt(item.precio * item.quantity)}</div>
           </div>
-          <button class="cart-item-remove" onclick="Cart.remove('${item.id}')" title="Eliminar">✕</button>
+          <button class="cart-item-remove" onclick="Cart.remove('${key}')" title="Eliminar">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
         </div>`;
     }).join('');
 
     if (totalEl) totalEl.textContent = `${this.currency} ${this.fmt(this.total())}`;
   },
 
-  adjustQty(id, delta) {
-    const item = this.items.find(i => i.id === id);
+  adjustQty(key, delta) {
+    const item = this.items.find(i => i._key === key);
     if (!item) return;
-    this.updateQuantity(id, item.quantity + delta);
+    this.updateQuantity(key, item.quantity + delta);
   },
 
-  changeStep(id, step) {
-    const item = this.items.find(i => i.id === id);
+  changeStep(key, step) {
+    const item = this.items.find(i => i._key === key);
     if (!item) return;
-    this.updateQuantity(id, item.quantity + step);
+    this.updateQuantity(key, item.quantity + step);
   },
 
   checkout() {
@@ -194,10 +199,12 @@ const Cart = {
 
     req('co-nombre', nombre);
     req('co-dni', dni);
-    if (!entrega) { document.getElementById('entrega-group').style.outline = '2px solid var(--color-danger)'; valid = false; }
-    else document.getElementById('entrega-group').style.outline = '';
-    if (!pago) { document.querySelector('.radio-group:last-of-type').style.outline = '2px solid var(--color-danger)'; valid = false; }
-    else document.querySelector('.radio-group:last-of-type').style.outline = '';
+    const entregaGroup = document.getElementById('entrega-group');
+    const pagoGroup = document.getElementById('pago-group');
+    if (!entrega) { entregaGroup.classList.add('error-outline'); valid = false; }
+    else entregaGroup.classList.remove('error-outline');
+    if (!pago) { pagoGroup?.classList.add('error-outline'); valid = false; }
+    else pagoGroup?.classList.remove('error-outline');
     if (entrega === 'domicilio') req('co-direccion', direccion);
 
     if (!valid) {
@@ -214,9 +221,10 @@ const Cart = {
       punto:     '📍 Retiro en punto de entrega',
     }[entrega];
 
-    const lines = this.items.map(i =>
-      `  • ${i.nombre} x${i.quantity} → ${this.currency} ${this.fmt(i.precio * i.quantity)}`
-    );
+    const lines = this.items.map(i => {
+      const v = i.variante ? ` [${i.variante}]` : '';
+      return `  • ${i.nombre}${v} x${i.quantity} → ${this.currency} ${this.fmt(i.precio * i.quantity)}`;
+    });
 
     const msg = [
       '🛒 *PEDIDO NUEVO*',

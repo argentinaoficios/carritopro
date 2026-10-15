@@ -61,7 +61,7 @@ function initSheet() {
   let sheet = ss.getSheetByName(PRODUCTS_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(PRODUCTS_SHEET);
-    const headers = ['id','nombre','descripcion','precio','imagenes','categoria','stock','min_unidades','pasos','activo','orden'];
+    const headers = ['id','nombre','descripcion','precio','imagenes','categoria','stock','min_unidades','pasos','variantes','variantes_label','activo','orden'];
     sheet.appendRow(headers);
     sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#1e3a5f').setFontColor('#ffffff');
     sheet.setFrozenRows(1);
@@ -166,6 +166,8 @@ function addProduct(p) {
     parseInt(p.stock) || 0,
     parseInt(p.min_unidades) || 1,
     Array.isArray(p.pasos) ? p.pasos.join(',') : (p.pasos || '1'),
+    p.variantes || '',
+    p.variantes_label || '',
     true,
     maxOrden + 1
   ]);

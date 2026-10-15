@@ -43,9 +43,13 @@ function applyStoreConfig(cfg) {
   if (cfg.logoUrl) {
     const logo = document.getElementById('store-logo');
     if (logo) { logo.src = cfg.logoUrl; logo.style.display = 'block'; }
+    const favicon = document.getElementById('favicon');
+    if (favicon) favicon.href = cfg.logoUrl;
   }
   if (cfg.primaryColor) {
     document.documentElement.style.setProperty('--color-primary', cfg.primaryColor);
+    // Generar tono más claro para hover
+    document.documentElement.style.setProperty('--color-primary-l', cfg.primaryColor + 'cc');
   }
   if (cfg.accentColor) {
     document.documentElement.style.setProperty('--color-accent', cfg.accentColor);
@@ -187,6 +191,25 @@ function openProductModal(id) {
   document.getElementById('modal-stock').textContent = p.stock > 0 ? `Stock: ${p.stock}` : 'Sin stock';
   document.getElementById('modal-stock').className = `modal-stock ${p.stock > 0 ? 'in' : 'out'}`;
 
+  // Variantes
+  const variantesSection = document.getElementById('modal-variants-section');
+  const variantesPills = document.getElementById('modal-variants-pills');
+  const variantesLabel = document.getElementById('modal-variants-label');
+  const variantes = p.variantes
+    ? String(p.variantes).split(',').map(v => v.trim()).filter(Boolean)
+    : [];
+
+  if (variantes.length) {
+    variantesSection.style.display = 'flex';
+    variantesLabel.textContent = p.variantes_label || 'Variante';
+    variantesPills.innerHTML = variantes.map(v =>
+      `<button class="variant-pill" onclick="selectVariant(this, '${v.replace(/'/g, "\\'")}')">${v}</button>`
+    ).join('');
+  } else {
+    variantesSection.style.display = 'none';
+    variantesPills.innerHTML = '';
+  }
+
   // Cantidad
   const min = p.min_unidades || 1;
   const pasos = p.pasos?.length ? p.pasos : [1];
@@ -235,10 +258,31 @@ function changeModalQty(delta) {
   input.value = newVal;
 }
 
+function selectVariant(btn, value) {
+  document.querySelectorAll('.variant-pill').forEach(b => b.classList.remove('selected', 'error'));
+  btn.classList.add('selected');
+}
+
 function modalAddToCart() {
   if (!modalProduct) return;
+
+  // Validar variante si el producto las tiene
+  const variantes = modalProduct.variantes
+    ? String(modalProduct.variantes).split(',').map(v => v.trim()).filter(Boolean)
+    : [];
+
+  let varianteSeleccionada = '';
+  if (variantes.length) {
+    const selectedPill = document.querySelector('.variant-pill.selected');
+    if (!selectedPill) {
+      document.querySelectorAll('.variant-pill').forEach(b => b.classList.add('error'));
+      return;
+    }
+    varianteSeleccionada = selectedPill.textContent;
+  }
+
   const qty = parseInt(document.getElementById('modal-qty').value) || modalProduct.min_unidades || 1;
-  Cart.add(modalProduct, qty);
+  Cart.add(modalProduct, qty, varianteSeleccionada);
   closeProductModal();
 }
 
@@ -274,17 +318,26 @@ function truncate(str, len) {
 
 // ── Checkout modal ────────────────────────────────────
 function openCheckout() {
-  // Renderizar resumen
   const cur = storeConfig.currency || CONFIG.CURRENCY;
+
+  // Resumen del pedido
   const summary = document.getElementById('checkout-summary');
-  summary.innerHTML = Cart.items.map(i =>
-    `<div class="sum-item"><span>${i.nombre} x${i.quantity}</span><strong>${cur} ${Cart.fmt(i.precio * i.quantity)}</strong></div>`
-  ).join('') + `<div class="sum-total"><span>Total</span><span>${cur} ${Cart.fmt(Cart.total())}</span></div>`;
+  summary.innerHTML =
+    Cart.items.map(i => {
+      const v = i.variante ? ` <span style="opacity:.7;font-size:.8em">(${i.variante})</span>` : '';
+      return `<div class="sum-item"><span>${i.nombre}${v} ×${i.quantity}</span><strong>${cur} ${Cart.fmt(i.precio * i.quantity)}</strong></div>`;
+    }).join('') +
+    `<div class="sum-total"><span>Total</span><span>${cur} ${Cart.fmt(Cart.total())}</span></div>`;
 
   document.getElementById('checkout-total-display').textContent = `${cur} ${Cart.fmt(Cart.total())}`;
 
-  document.getElementById('checkout-modal').classList.add('open');
+  // Limpiar errores previos
+  document.querySelectorAll('.co-field input.error').forEach(el => el.classList.remove('error'));
+  document.getElementById('entrega-group').classList.remove('error-outline');
+  document.getElementById('pago-group')?.classList.remove('error-outline');
+
   document.getElementById('checkout-overlay').classList.add('visible');
+  document.getElementById('checkout-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
 

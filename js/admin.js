@@ -160,6 +160,8 @@ function openEditModal(id) {
   document.getElementById('f-stock').value = p.stock ?? '';
   document.getElementById('f-min').value = p.min_unidades || 1;
   document.getElementById('f-pasos').value = (p.pasos || [1]).join(',');
+  document.getElementById('f-variantes').value = p.variantes || '';
+  document.getElementById('f-variantes-label').value = p.variantes_label || '';
 
   renderImagePreview();
   document.getElementById('product-form-modal').classList.add('open');
@@ -179,6 +181,8 @@ function resetForm() {
   document.getElementById('f-stock').value = '';
   document.getElementById('f-min').value = 1;
   document.getElementById('f-pasos').value = '1';
+  document.getElementById('f-variantes').value = '';
+  document.getElementById('f-variantes-label').value = '';
   renderImagePreview();
 }
 
@@ -246,6 +250,8 @@ async function saveProduct() {
     stock: parseInt(document.getElementById('f-stock').value) || 0,
     min_unidades: parseInt(document.getElementById('f-min').value) || 1,
     pasos: pasos.length ? pasos : [1],
+    variantes: document.getElementById('f-variantes').value.trim(),
+    variantes_label: document.getElementById('f-variantes-label').value.trim(),
     activo: true,
   };
 
