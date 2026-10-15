@@ -188,7 +188,7 @@ const Cart = {
       '_Enviado desde el catálogo online_'
     ].join('\n');
 
-    const number = (this.whatsapp || CONFIG.WHATSAPP).replace(/\D/g, '');
+    const number = String(this.whatsapp || CONFIG.WHATSAPP).replace(/\D/g, '');
     const url = `https://wa.me/${number}?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
   },
