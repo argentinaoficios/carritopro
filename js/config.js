@@ -5,7 +5,7 @@
 
 const CONFIG = {
   // URL que obtenés al deployar el Apps Script como Web App
-  API_URL: 'https://script.google.com/macros/s/AKfycbzpVCPr0fbe89u0Xy6QRy9y9irLGdLrzHYpa3bViKm7XS-ltRlDpwTSayUezwM6YkMU_A/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbweNxLCx5TZ3trUOpNptEX_XwEWPSEkgoNjiBkQfKu74KxIe5TaoNWjHsEpdFKHUrpY0Q/exec',
 
   // Clave secreta que pusiste en Code.gs → ADMIN_KEY
   ADMIN_KEY: 'admin12345678',
