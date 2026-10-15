@@ -173,24 +173,74 @@ const Cart = {
 
   checkout() {
     if (this.items.length === 0) return;
+    this.close();
+    openCheckout();
+  },
+
+  submitCheckout() {
+    // Validar campos obligatorios
+    const nombre = document.getElementById('co-nombre').value.trim();
+    const dni    = document.getElementById('co-dni').value.trim();
+    const entrega = document.querySelector('input[name="entrega"]:checked')?.value;
+    const pago   = document.querySelector('input[name="pago"]:checked')?.value;
+    const direccion = document.getElementById('co-direccion').value.trim();
+
+    let valid = true;
+    const req = (id, condition) => {
+      const el = document.getElementById(id);
+      if (!condition) { el?.classList.add('error'); valid = false; }
+      else el?.classList.remove('error');
+    };
+
+    req('co-nombre', nombre);
+    req('co-dni', dni);
+    if (!entrega) { document.getElementById('entrega-group').style.outline = '2px solid var(--color-danger)'; valid = false; }
+    else document.getElementById('entrega-group').style.outline = '';
+    if (!pago) { document.querySelector('.radio-group:last-of-type').style.outline = '2px solid var(--color-danger)'; valid = false; }
+    else document.querySelector('.radio-group:last-of-type').style.outline = '';
+    if (entrega === 'domicilio') req('co-direccion', direccion);
+
+    if (!valid) {
+      document.querySelector('.checkout-body').scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const telefono = document.getElementById('co-telefono').value.trim();
+    const nota     = document.getElementById('co-nota').value.trim();
+
+    const entregaLabel = {
+      domicilio: '🏠 Envío a domicilio',
+      sucursal:  '🏪 Retiro por sucursal',
+      punto:     '📍 Retiro en punto de entrega',
+    }[entrega];
 
     const lines = this.items.map(i =>
-      `• ${i.nombre} x${i.quantity} → ${this.currency} ${this.fmt(i.precio * i.quantity)}`
+      `  • ${i.nombre} x${i.quantity} → ${this.currency} ${this.fmt(i.precio * i.quantity)}`
     );
 
     const msg = [
-      '🛒 *Pedido nuevo*',
+      '🛒 *PEDIDO NUEVO*',
       '',
+      '📦 *Productos:*',
       ...lines,
+      `  *Total: ${this.currency} ${this.fmt(this.total())}*`,
       '',
-      `*Total: ${this.currency} ${this.fmt(this.total())}*`,
+      '👤 *Datos del comprador:*',
+      `  Nombre: ${nombre}`,
+      `  DNI: ${dni}`,
+      telefono ? `  Teléfono: ${telefono}` : '',
       '',
-      '_Enviado desde el catálogo online_'
-    ].join('\n');
+      `🚚 *Entrega:* ${entregaLabel}`,
+      (entrega === 'domicilio') ? `  Dirección: ${direccion}` : '',
+      '',
+      `💳 *Forma de pago:* ${pago}`,
+      nota ? `\n📝 *Nota:* ${nota}` : '',
+      '',
+      '_Enviado desde el catálogo online_',
+    ].filter(l => l !== '').join('\n');
 
     const number = String(this.whatsapp || CONFIG.WHATSAPP).replace(/\D/g, '');
-    const url = `https://wa.me/${number}?text=${encodeURIComponent(msg)}`;
-    window.open(url, '_blank');
+    window.open(`https://wa.me/${number}?text=${encodeURIComponent(msg)}`, '_blank');
   },
 
   showNotification(msg) {

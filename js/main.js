@@ -272,12 +272,43 @@ function truncate(str, len) {
   return str.length > len ? str.slice(0, len) + '…' : str;
 }
 
+// ── Checkout modal ────────────────────────────────────
+function openCheckout() {
+  // Renderizar resumen
+  const cur = storeConfig.currency || CONFIG.CURRENCY;
+  const summary = document.getElementById('checkout-summary');
+  summary.innerHTML = Cart.items.map(i =>
+    `<div class="sum-item"><span>${i.nombre} x${i.quantity}</span><strong>${cur} ${Cart.fmt(i.precio * i.quantity)}</strong></div>`
+  ).join('') + `<div class="sum-total"><span>Total</span><span>${cur} ${Cart.fmt(Cart.total())}</span></div>`;
+
+  document.getElementById('checkout-total-display').textContent = `${cur} ${Cart.fmt(Cart.total())}`;
+
+  document.getElementById('checkout-modal').classList.add('open');
+  document.getElementById('checkout-overlay').classList.add('visible');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCheckout() {
+  document.getElementById('checkout-modal').classList.remove('open');
+  document.getElementById('checkout-overlay').classList.remove('visible');
+  document.body.style.overflow = '';
+  Cart.open();
+}
+
+function onEntregaChange() {
+  const val = document.querySelector('input[name="entrega"]:checked')?.value;
+  const wrap = document.getElementById('co-direccion-wrap');
+  wrap.style.display = val === 'domicilio' ? 'flex' : 'none';
+  if (val !== 'domicilio') document.getElementById('co-direccion').value = '';
+}
+
 // ── Event listeners ───────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   init();
 
   document.getElementById('cart-overlay').addEventListener('click', () => Cart.close());
   document.getElementById('modal-overlay').addEventListener('click', closeProductModal);
+  document.getElementById('checkout-overlay').addEventListener('click', closeCheckout);
 
   document.getElementById('search-input')?.addEventListener('input', handleSearch);
 
